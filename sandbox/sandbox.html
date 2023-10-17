@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta
+      content='width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0'
+      name='viewport'>
+  <meta content='ie=edge' http-equiv='X-UA-Compatible'>
+  <title>Document</title>
+</head>
+<body>
+<script type='text/javascript'>
+  class Sandbox {
+    execute = false
+
+    constructor() {
+      this.proxy = this.snapshot()
+    }
+
+    snapshot() {
+      const fakeWin = Object.create(null)
+      return new Proxy(fakeWin, {
+        get: (tar, key, receiver) => {
+          return key in tar ? tar[key] : window[key]
+        },
+
+        set: (tar, key, val, receiver) => {
+          if (this.execute) {
+            tar[key] = val
+          }
+        }
+      })
+    }
+
+    active() {
+      if (!this.execute) this.execute = true
+    }
+
+    inactive() {
+      this.execute = false
+    }
+  }
+
+  const sandbox1 = new Sandbox()
+  const sandbox2 = new Sandbox()
+
+  sandbox1.active()
+  sandbox2.active()
+
+  sandbox1.proxy.info = 'sandbox1'
+  sandbox2.proxy.info = 'sandbox2'
+  console.log(sandbox1.proxy.info, sandbox2.proxy.info)
+
+  // 失活之后实例属性就不可以更改了
+  sandbox1.inactive()
+  sandbox2.inactive()
+
+  sandbox1.proxy.info = ''
+  sandbox2.proxy.info = ''
+  console.log(sandbox1.proxy.info, sandbox2.proxy.info)
+
+</script>
+</body>
+</html>
