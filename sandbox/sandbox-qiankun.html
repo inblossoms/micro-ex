@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang='en'>
+<head>
+  <meta charset='UTF-8'>
+  <meta
+      content='width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0'
+      name='viewport'>
+  <meta content='ie=edge' http-equiv='X-UA-Compatible'>
+  <title>Document</title>
+</head>
+<body>
+<script type='text/javascript'>
+  class Sandbox {
+
+    constructor() {
+      this.PropsPool = new Map()
+      this.modifyPropsPool = new Map()
+      this.addedPropsPool = new Map()
+      this.proxy = this.snapshot.call(this)
+
+
+    }
+
+    snapshot() {
+      const fakeWindow = Object.create(null)
+      const proxy = new Proxy(fakeWindow, {
+        get: (tar, key, receiver) => {
+          return window[key]
+        },
+        set: (tar, key, val, receiver) => {
+          if (!window.hasOwnProperty(key)) {
+            this.addedPropsPool.set(key, val)
+          } else if (!this.modifyPropsPool.has(key)) {
+            this.modifyPropsPool.set(key, window[key])
+          }
+          this.PropsPool.set(key, val) // 存储变更和新增的数据
+          window[key] = val
+        }
+      })
+      return proxy
+    }
+
+    active() {
+      this.PropsPool.forEach((val, key) => {
+        this.modifyGlobalProps(val, key)
+      })
+    }
+
+    inactive() {
+      this.modifyPropsPool.forEach((val, key) => {
+        this.modifyGlobalProps(val, key)
+      })
+      this.addedPropsPool.forEach((val, key) => {
+        this.modifyGlobalProps(undefined, key)
+      })
+    }
+
+    modifyGlobalProps(val, key) {
+      if (val === undefined) {
+        delete window[key]
+      } else {
+        window[key] = val
+      }
+    }
+  }
+
+  const sandbox = new Sandbox()
+  sandbox.active()
+  sandbox.proxy.x = 1
+  sandbox.proxy.y = 2
+  console.log(window.x, typeof window.y)
+  sandbox.inactive()
+  sandbox.active()
+  sandbox.proxy.x = 'a'
+  sandbox.proxy.y = '2'
+  console.log(window.x, typeof window.y)
+</script>
+</body>
+</html>

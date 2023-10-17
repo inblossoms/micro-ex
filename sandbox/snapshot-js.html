@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+      name="viewport">
+  <meta content="ie=edge" http-equiv="X-UA-Compatible">
+  <title>Document</title>
+</head>
+<body>
+<script type='text/javascript'>
+  class SnapshotSandbox {
+    windowSnapShot = {}
+
+    constructor() {
+      this.modifyPool = {}
+    }
+
+    active() {
+      Object.keys(window).forEach(props => this.windowSnapShot[props] = window[props])
+      Object.keys(this.modifyPool).forEach(props => window[props] = this.modifyPool[props])
+    }
+
+    inactive() {
+      this.modifyPool = {}
+      Object.keys(window).forEach(props => {
+        if (!window[props] === this.windowSnapShot[props]) {
+          this.modifyPool = window[props]
+          window[props] = this.windowSnapShot[props]
+        }
+      })
+    }
+  }
+
+  const snap = new SnapshotSandbox()
+  snap.active()
+  window.x = 1
+  window.y = 2
+  snap.inactive()
+  console.log(window.x, window.y)
+  const snap2 = new SnapshotSandbox()
+  snap2.active()
+  window.x = 'x'
+  window.y = 'y'
+  snap2.inactive()
+  console.log(window.x, window.y)
+</script>
+</body>
+</html>
