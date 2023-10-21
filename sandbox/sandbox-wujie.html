@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Document</title>
+</head>
+
+<body>
+<div id="app">
+  基座代码 不会受子应用的样式影响
+</div>
+
+<script type="text/javascript">
+  // 通常对于 Js 沙箱的方案都是后期再实现的，wujie 中采用了 iframe 天然支持 Js 沙箱的方案来解决代码污染的问题
+  // 沙箱的原理就是将沙箱内的代码放到一个 iframe 内，这样就不会影响沙箱外的代码
+  // 沙箱内代码的执行环境是沙箱内的 window 对象，所以沙箱内的代码无法访问沙箱外的代码
+
+  // 对于 css 的隔离，采用了 web-components(shadow DOM) 方案，将 css 隔离到组件内部
+
+  const subAppHtml = `
+		  <!DOCTYPE html>
+		  <html lang="en">
+		  <head>
+			  <meta charset="UTF-8">
+			  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+			  <title>Document</title>
+		  </head>
+		  <body>
+			  <div>
+				  CONTAINER
+				  <div id='sub-app'></div>
+			  </div>
+		  </body>
+		  </html>
+		`;
+
+  const subAppJs = `
+		const app = document.querySelector('#sub-app')
+		const shadow = app.attachShadow({mode: 'open'})
+		shadow.innerHTML = \`
+		<span>sub-app</span>
+		<style>span {color: red}</style>
+		\`
+		window.info = 'wujie mirco fe.'
+		console.log(window.info)
+		`;
+
+  function createIframe() {
+    const iframe = document.createElement('iframe')
+    iframe.style.display = 'none'
+    iframe.src = 'about:blank'
+    document.body.appendChild(iframe)
+
+    return iframe
+  }
+
+  const createSandbox = () => {
+    const sandbox = {
+      iframe: createIframe(), // Js 沙箱
+      shadowRoot: null // html css 沙箱
+    }
+    return sandbox
+  };
+
+  /**
+   * 将子应用挂载到基座
+   * @param sandbox 沙箱
+   * @param subAppHtml 子应用模板
+   */
+  function injectSubCtx(sandbox, subAppHtml) {
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = subAppHtml
+    sandbox.shadowRoot.append(wrapper)
+  }
+
+  function injectSubJs(sandbox, subAppJs) {
+    const iframeWin = sandbox.iframe.contentWindow
+    const script = iframeWin.document
+        .createElement('script')
+
+    // 在脚本执行之前 矫正子应用的中档对象以及 window 对象等等到基座
+    Object.defineProperty(sandbox.iframe.contentDocument, 'querySelector', {
+      get() {
+        return new Proxy(sandbox.shadowRoot['querySelector'], {
+          apply(target, thisArg, argArray) {
+            // document.querySelector => shadowDOM.document
+            return thisArg.querySelector.apply(sandbox.shadowRoot, argArray)
+          }
+        })
+      }
+    })
+
+    script.textContent = subAppJs
+    iframeWin.document.head.append(script)
+  }
+
+  function createCustomElement() {
+    class WuJieApp extends HTMLElement {
+      connectedCallback() {
+        console.log('elements rendering complete.');
+
+        // 1> 创建沙箱
+        const sandbox = createSandbox()
+        // 2> 创建 shadowDOM
+        sandbox.shadowRoot = this.attachShadow({mode: 'open'}) // 创建 shadowDOM 做为子应用静态页面容器
+        // 3> 将 html css 注入到 shadowDOM
+        injectSubCtx(sandbox, subAppHtml)
+        // 4> 将 Js 注入到沙箱中执行
+        injectSubJs(sandbox, subAppJs)
+      }
+    }
+
+    window.customElements.define('wujie-app', WuJieApp);
+    app.append(document.createElement('wujie-app'))
+  }
+
+  createCustomElement() // shadowDOM 处于文档作用域
+</script>
+</body>
+
+</html>
