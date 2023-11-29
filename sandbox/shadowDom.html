@@ -23,7 +23,25 @@
       <style>span {color: red}</style>
     `
     // document.body.appendChild(shadow)
-
   </script>
+
+<!--   
+    ShadowDOM 和 Iframe：
+          ShadowDOM 更适合于构建具有封装性和局部样式的组件；
+          Iframe 更适合加载独立的文档，应用程序或提供跨域通信的场景；
+    ShadowDOM 使用场景：
+          （个人）eg: 在开发 Chrome Extension 过程中为了避免 Chrome Extension 注入的页面于原页面产生样式冲突，
+                因此选择 ShadowDOM。
+           如果有组件化开发、Web组件化开发、样式隔离、浏览器插件开发、Web组件库等场景时可以选择 ShadowDOM。
+    ShadowDOM 的优势和劣势：
+           优势：
+                封装：ShadowDOM 允许开发者将组件的 HTML、样式、行为封装在一起，使其成为一个独立的单元。有助于降低组件之间的耦合度。
+                隔离：内部的 DOM 结构对外部不可见，避免了全局作用域的样式和脚本冲突。有助于提高代码的可靠性。
+           劣势：
+                学习曲线；
+                调试困难：ShadowDOM 的封装性质，调试组件内部的 DOM 结构和样式可能变的更假困难。
+                浏览器的支持：对的就是它，IE。
+           
+-->
 </body>
 </html>
